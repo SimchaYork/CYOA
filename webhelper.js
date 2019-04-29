@@ -9,6 +9,7 @@ var choices;
 var answer;
 var textTimer;
 
+// Track in-game progress for saves.
 var gameProgress = {
   id: null,
   character: null,
@@ -28,6 +29,8 @@ var config = {
   OPTION_SAVE_GAME: 'OPTION_SAVE_GAME'
 };
 
+// Track game state and keep information pulled from Airtable that we don't
+// want to have to request again later.
 var gameData = {
   currentGameState: config.START_GAME,
   optionFlags: [],
@@ -46,6 +49,9 @@ function setup() {
     // .setAttribute("onclick", "getScene(dropdown.value)");
 }
 
+// This will return false if the character does not have the required flag
+// for a choice or if the character has the blocking flag for the choise.
+// Otherwise it will return true.
 function optionIsVisible(requiredFlags, blockingFlags) {
   if (requiredFlags)  {
     for (let idx = 0; idx < requiredFlags.length; idx++) {
@@ -64,22 +70,19 @@ function optionIsVisible(requiredFlags, blockingFlags) {
   return true;
 }
 
+// Use game state to determine how to handle the button click.
 function handleClick() {
   switch (gameData.currentGameState) {
     case config.START_GAME:
-      console.log('handleClick() START_GAME');
       getNewOrSavedStory(dropdown.value);
       break;
     case config.SELECT_CHARACTER:
-      console.log('handleClick() SELECT_CHARACTER');
       getCharacterSelection(dropdown.value);
       break;
     default:
       if (dropdown.value === config.OPTION_SAVE_GAME) {
-        console.log('handleClick() OPTION_SAVE_GAME');
         saveGame();
       } else {
-        console.log('handleClick() default');
         getScene(dropdown.value);
       }
   }
@@ -95,10 +98,6 @@ function clearOptionFlags() {
   });
 }
 
-function makeSelection(value) {
-  console.log(`You selected ${value}`);
-}
-
 function setOptions(options) {
   var dropdown = document.getElementById("choices");
   
@@ -110,7 +109,6 @@ function setOptions(options) {
       // This is object-oriented JavaScript (hence capital letter)
       var option = new Option(options[i].choice, options[i].target);
       dropdown.options.add(option);
-      dropdown.setAttribute("onchange", "makeSelection(this.value)");
       if (options[i].flag) {
         addOptionFlag(options[i].target, options[i].flag);
       }

@@ -4,8 +4,7 @@ window.onload = start;
 
 // Replace with your own AirTable API key.
 // Normally, you will want to keep this private.
-// This key will only be good for a couple of days.
-const key = <API_KEY_HERE>;
+const key = '<API_KEY_HERE';
 const app_id = 'appSVsEDQXy942uBt';
 const base_url = `https://api.airtable.com/v0/${app_id}`;
 
@@ -14,6 +13,8 @@ const STORY_INTRO_ID = 'rechdafIRcc9kLvlR';
 const CHARACTER_SELECT_ID = 'recas7gQgQOT7xdkm'
 const OPENING_SCENE_ID = 'recas7gQgQOT7xdkm';
 
+// Start story and make initial DB requests for opening scene, saved games,
+// and available characters.
 function start() {
   setup();
   // Create array of requests and use Promise.all to await both responses before proceeding.
@@ -53,6 +54,8 @@ function start() {
     });
 }
 
+// Save a game. Makes a POST request to the base on the first save for
+// a character, and PATCH requests on follow-up saves.
 function saveGame() {
   const progressData = {
     fields: {
@@ -71,7 +74,6 @@ function saveGame() {
     url = `${base_url}/gameProgress/${gameProgress.id}?api_key=${key}`;
     type = 'PATCH';
   }
-  console.log('save data:', progressData);
   buttonElement.innerHTML = 'Saving game...';
   $.ajax({ url, type, data: progressData })
     .done(function (data) {
@@ -80,7 +82,6 @@ function saveGame() {
       gameProgress.saveNumber += 1;
       gameData.savedGames[data.id] = data.fields;
       gameData.touchedSinceSave = false;
-      console.log('Saved:', data.fields);
       getScene(gameProgress.currentScene, true);
     })
     .fail(function (err) {
@@ -88,8 +89,8 @@ function saveGame() {
     });
 }
 
+// Get the scene and option info. Advance the game turn number.
 function getScene(record_id, resume = false) {
-  console.log('getScene() resume:', resume);
   gameProgress.currentScene = record_id;
   if (!resume) {
     gameProgress.turnNumber += 1;
@@ -97,7 +98,6 @@ function getScene(record_id, resume = false) {
   }
   if (optionFlags[record_id]) {
     gameProgress.flags.push(optionFlags[record_id]);
-    console.log('gameProgress.flags:', gameProgress.flags);
   }
   clearOptionFlags();
 
@@ -110,12 +110,8 @@ function getScene(record_id, resume = false) {
       // it and store it in variables.
       let choices = [];
       let { title, story, special } = data.fields;
-      console.log('Scene:', title);
       if (data.fields.special) {
         switch(special) {
-          case "GAME_OVER":
-            gameData.currentGameState = config.GAME_OVER;
-            break;
           case "M8":
             alert("Play Mastermind!");
             break;
@@ -168,6 +164,7 @@ function getScene(record_id, resume = false) {
     });
 }
 
+// Start a new game or resume a previously saved game.
 function getNewOrSavedStory(value) {
   if (value === config.OPTION_NEW_GAME) {
     gameData.currentGameState = config.SELECT_CHARACTER;
@@ -202,6 +199,7 @@ function getNewOrSavedStory(value) {
   }
 }
 
+// Build current game progress data from saved game data.
 function resumeGame(record_id, progressData) {
   gameProgress.id = record_id;
   gameProgress.character = progressData.character;
@@ -212,6 +210,7 @@ function resumeGame(record_id, progressData) {
   getScene(progressData.currentScene, true);
 }
 
+// Update game progress with the selected character.
 function getCharacterSelection(value) {
   let character = gameData.characters.find(function (element) {
     return element.fields.firstScene[0] === value;
@@ -219,7 +218,6 @@ function getCharacterSelection(value) {
   if (character) {
     gameData.currentGameState = config.PLAY_GAME;
     gameProgress.character = `${character.fields.name} the ${character.fields.charClass}`;
-    console.log('getCharacterSelection:', gameProgress);
     getScene(value);
   } else {
     console.log('ERROR: Character could not be found.');
